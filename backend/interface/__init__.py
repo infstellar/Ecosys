@@ -1,0 +1,1 @@
+# Interface package for frontend-backend communication

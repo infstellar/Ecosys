@@ -1,6 +1,51 @@
-/backend
-/frontend
-/main.py
-/requirements.txt
-/test.py
-/test_ecosystem.py
+# Python 编译产物
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志与临时文件
+*.log
+*.tmp
+*.bak
+
+# 包管理
+pip-log.txt
+pip-delete-this-directory.txt
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+*.py,cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# 构建产物
+build/
+dist/
+*.egg-info/
