@@ -164,7 +164,7 @@ class SimulationEngine:
         # Update statistics
         self.ecosystem.update_statistics()
         
-        # Increment time step
+        #ncrement time step
         self.ecosystem.time_step += 1
 
 

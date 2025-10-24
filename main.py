@@ -30,9 +30,9 @@ class EcosystemApp:
         self.config = EcosystemConfig(
             world_width=800,
             world_height=600,
-            initial_grass=100,
+            initial_grass=150,
             initial_cows=20,
-            initial_tigers=5
+            initial_tigers=1
         )
         
         # Initialize components

@@ -4,6 +4,7 @@ Manages the entire ecosystem state and data
 """
 
 import random
+import numpy as np
 from typing import List, Dict, Any, Tuple
 from .species import Grass, Cow, Tiger, Position
 
@@ -11,7 +12,7 @@ from .species import Grass, Cow, Tiger, Position
 class EcosystemConfig:
     """Ecosystem Configuration"""
     def __init__(self, world_width=800, world_height=600, 
-                 initial_grass=50, initial_cows=15, initial_tigers=5):
+                 initial_grass=100, initial_cows=10, initial_tigers=1):
         self.world_width = world_width
         self.world_height = world_height
         self.initial_grass = initial_grass
@@ -70,22 +71,30 @@ class EcosystemState:
     
     def get_ecosystem_state(self) -> Dict[str, Any]:
         """Get ecosystem state dictionary for species updates"""
+        # Precompute grass positions for numpy optimization
+        alive_grass_positions = []
+        alive_grass_objects = []
+        for grass in self.grass_list:
+            if grass.alive:
+                alive_grass_positions.append([grass.position.x, grass.position.y])
+                alive_grass_objects.append(grass)
+        
+        grass_positions_array = np.array(alive_grass_positions) if alive_grass_positions else np.empty((0, 2))
+        
         return {
             'world_width': self.config.world_width,
             'world_height': self.config.world_height,
             'grass_list': self.grass_list,
             'cow_list': self.cow_list,
             'tiger_list': self.tiger_list,
-            'time_step': self.time_step
+            'time_step': self.time_step,
+            # Precomputed numpy arrays for performance
+            'grass_positions_array': grass_positions_array,
+            'alive_grass_objects': alive_grass_objects
         }
     
     def update_species(self, ecosystem_state: Dict[str, Any]):
-        """Update species lists, remove dead individuals"""
-        # Record death counts
-        initial_grass = len(self.grass_list)
-        initial_cows = len(self.cow_list)
-        initial_tigers = len(self.tiger_list)
-        
+        """Update species lists"""
         # Update all species
         for grass in self.grass_list[:]:
             grass.update(ecosystem_state)
@@ -93,11 +102,6 @@ class EcosystemState:
             cow.update(ecosystem_state)
         for tiger in self.tiger_list[:]:
             tiger.update(ecosystem_state)
-        
-        # Remove dead individuals
-        self.grass_list = [g for g in self.grass_list if g.alive]
-        self.cow_list = [c for c in self.cow_list if c.alive]
-        self.tiger_list = [t for t in self.tiger_list if t.alive]
     
     def handle_reproduction(self):
         """Handle reproduction"""
@@ -132,10 +136,18 @@ class EcosystemState:
         self.cow_list.extend(new_cows)
         self.tiger_list.extend(new_tigers)
         
-        # Record birth counts
+        # Record birth counts and log reproduction events
         self.births['grass'] += len(new_grass)
         self.births['cow'] += len(new_cows)
         self.births['tiger'] += len(new_tigers)
+        
+        # Log reproduction events
+        if len(new_grass) > 0:
+            print(f"🌱 {len(new_grass)} new grass individuals born")
+        if len(new_cows) > 0:
+            print(f"🐄 {len(new_cows)} new cows born")
+        if len(new_tigers) > 0:
+            print(f"🐅 {len(new_tigers)} new tigers born")
     
     def update_statistics(self):
         """Update statistics"""
@@ -148,15 +160,41 @@ class EcosystemState:
     
     def cleanup_dead(self):
         """Remove dead individuals and update death statistics"""
-        # Count deaths before cleanup
-        dead_grass = sum(1 for g in self.grass_list if not g.alive)
-        dead_cows = sum(1 for c in self.cow_list if not c.alive)
-        dead_tigers = sum(1 for t in self.tiger_list if not t.alive)
+        # Count deaths before cleanup and log death reasons
+        dead_grass = []
+        dead_cows = []
+        dead_tigers = []
+        
+        # Collect dead individuals and their death reasons
+        for g in self.grass_list:
+            if not g.alive:
+                dead_grass.append(g)
+        
+        for c in self.cow_list:
+            if not c.alive:
+                dead_cows.append(c)
+        
+        for t in self.tiger_list:
+            if not t.alive:
+                dead_tigers.append(t)
+        
+        # Debug: Print cleanup status every 100 time steps
+        if self.time_step % 100 == 0:
+            print(f"⏰ Time step {self.time_step}: Alive - Grass: {len(self.grass_list) - len(dead_grass)}, Cows: {len(self.cow_list) - len(dead_cows)}, Tigers: {len(self.tiger_list) - len(dead_tigers)}")
+        
+        # Log death reasons to console (exclude grass)
+        if dead_cows:
+            for cow in dead_cows:
+                print(f"🐄 Cow died: {cow.death_reason} (Age: {cow.age}, Energy: {cow.energy})")
+        
+        if dead_tigers:
+            for tiger in dead_tigers:
+                print(f"🐅 Tiger died: {tiger.death_reason} (Age: {tiger.age}, Energy: {tiger.energy})")
         
         # Update death statistics
-        self.deaths['grass'] += dead_grass
-        self.deaths['cow'] += dead_cows
-        self.deaths['tiger'] += dead_tigers
+        self.deaths['grass'] += len(dead_grass)
+        self.deaths['cow'] += len(dead_cows)
+        self.deaths['tiger'] += len(dead_tigers)
         
         # Remove dead individuals
         self.grass_list = [g for g in self.grass_list if g.alive]
