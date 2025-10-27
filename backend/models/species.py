@@ -109,13 +109,22 @@ class Animal(Species):
         self.hunting_cooldown = 0  # Cooldown after hunting/eating
         self.hunting_cooldown_duration = hunting_cooldown_duration
     
-    def find_nearest_food(self, ecosystem_state: Dict[str, Any]) -> Optional[Position]:
+    def find_nearest_food(self, ecosystem_state) -> Optional[Position]:
         """Find the nearest food source"""
         nearest_food = None
         min_distance = float('inf')
         
         for food_type in self.food_types:
-            food_list = ecosystem_state.get(f'{food_type}_list', [])
+            # Access Pydantic model attributes instead of dict.get()
+            if food_type == 'grass':
+                food_list = ecosystem_state.grass_list
+            elif food_type == 'cow':
+                food_list = ecosystem_state.cow_list
+            elif food_type == 'tiger':
+                food_list = ecosystem_state.tiger_list
+            else:
+                food_list = []
+                
             for food in food_list:
                 if food.alive:
                     distance = self.position.distance_to(food.position)
@@ -144,7 +153,7 @@ class Animal(Species):
             self.position.x = max(0, min(world_width, self.position.x + dx))
             self.position.y = max(0, min(world_height, self.position.y + dy))
     
-    def intelligent_move(self, ecosystem_state: Dict[str, Any]) -> None:
+    def intelligent_move(self, ecosystem_state) -> None:
         """Intelligent movement - move towards food if available, otherwise move randomly"""
         if not self.alive:
             return
@@ -154,8 +163,9 @@ class Animal(Species):
             self.hunting_cooldown -= 1
             return  # Don't move during cooldown
         
-        world_width = ecosystem_state.get('world_width', 800)
-        world_height = ecosystem_state.get('world_height', 600)
+        # Access Pydantic model attributes
+        world_width = ecosystem_state.world_width
+        world_height = ecosystem_state.world_height
         
         # Try to find food
         nearest_food = self.find_nearest_food(ecosystem_state)
@@ -182,10 +192,11 @@ class Grass(Species):
         self.competition_radius = 30.0  # Increased competition radius for more realistic effect
         self.max_competition_effect = 0.9  # Reduced max competition effect for better balance
     
-    def calculate_nearby_grass_density_optimized(self, ecosystem_state: Dict[str, Any]) -> float:
+    def calculate_nearby_grass_density_optimized(self, ecosystem_state) -> float:
         """Calculate the density of grass in the nearby area using precomputed numpy arrays"""
-        grass_positions_array = ecosystem_state.get('grass_positions_array', np.empty((0, 2)))
-        alive_grass_objects = ecosystem_state.get('alive_grass_objects', [])
+        # Access Pydantic model attributes
+        grass_positions_array = getattr(ecosystem_state, 'grass_positions_array', np.empty((0, 2)))
+        alive_grass_objects = getattr(ecosystem_state, 'alive_grass_objects', [])
         
         if grass_positions_array.size == 0:
             return 0.0
@@ -221,14 +232,14 @@ class Grass(Species):
         
         return density
 
-    def calculate_nearby_grass_density(self, ecosystem_state: Dict[str, Any]) -> float:
+    def calculate_nearby_grass_density(self, ecosystem_state) -> float:
         """Calculate the density of grass in the nearby area using numpy optimization"""
         # Use optimized version if precomputed arrays are available
-        if 'grass_positions_array' in ecosystem_state:
+        if hasattr(ecosystem_state, 'grass_positions_array'):
             return self.calculate_nearby_grass_density_optimized(ecosystem_state)
         
         # Fallback to original implementation
-        grass_list = ecosystem_state.get('grass_list', [])
+        grass_list = ecosystem_state.grass_list
         
         if not grass_list:
             return 0.0
@@ -300,7 +311,7 @@ class Grass(Species):
         return (super().can_reproduce() and 
                 random.random() < self.reproduction_chance)
     
-    def reproduce(self, ecosystem_state: Dict[str, Any]) -> Optional['Grass']:
+    def reproduce(self, ecosystem_state) -> Optional['Grass']:
         """Reproduce to create new grass"""
         super().reproduce(ecosystem_state)
         
@@ -308,8 +319,9 @@ class Grass(Species):
             return None
         
         # Generate new grass at nearby random position
-        world_width = ecosystem_state.get('world_width', 800)
-        world_height = ecosystem_state.get('world_height', 600)
+        # Access Pydantic model attributes
+        world_width = ecosystem_state.world_width
+        world_height = ecosystem_state.world_height
         
         new_x = max(0, min(world_width, self.position.x + random.uniform(-200, 200)))
         new_y = max(0, min(world_height, self.position.y + random.uniform(-200, 200)))
@@ -345,7 +357,7 @@ class Cow(Animal):
         # Keep eating_range for backward compatibility if needed elsewhere
         self.eating_range = self.hunting_range
     
-    def update(self, ecosystem_state: Dict[str, Any]) -> None:
+    def update(self, ecosystem_state) -> None:
         """Update cow state"""
         # Call parent update first to handle reproduction cooldown
         super().update(ecosystem_state)
@@ -360,7 +372,7 @@ class Cow(Animal):
         self.energy -= self.energy_consumption
         
         # Find and eat grass
-        self._eat_grass(ecosystem_state.get('grass_list', []))
+        self._eat_grass(ecosystem_state.grass_list)
         
         # Age increases
         self.age_one_step()
@@ -396,8 +408,8 @@ class Cow(Animal):
         self.reproduction_cooldown = 200
         
         # Generate new cow at nearby random position
-        world_width = ecosystem_state.get('world_width', 800)
-        world_height = ecosystem_state.get('world_height', 600)
+        world_width = ecosystem_state.world_width
+        world_height = ecosystem_state.world_height
         
         new_x = max(0, min(world_width, self.position.x + random.uniform(-10, 10)))
         new_y = max(0, min(world_height, self.position.y + random.uniform(-10, 10)))
@@ -444,7 +456,7 @@ class Tiger(Animal):
         self.energy -= self.energy_consumption
         
         # Find and hunt cows
-        self._hunt_cows(ecosystem_state.get('cow_list', []))
+        self._hunt_cows(ecosystem_state.cow_list)
         
         # Age increases
         self.age_one_step()
@@ -483,8 +495,8 @@ class Tiger(Animal):
         self.reproduction_cooldown = 800
         
         # Generate new tiger at nearby random position
-        world_width = ecosystem_state.get('world_width', 800)
-        world_height = ecosystem_state.get('world_height', 600)
+        world_width = ecosystem_state.world_width
+        world_height = ecosystem_state.world_height
         
         new_x = max(0, min(world_width, self.position.x + random.uniform(-40, 40)))
         new_y = max(0, min(world_height, self.position.y + random.uniform(-40, 40)))

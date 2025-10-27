@@ -87,32 +87,32 @@ class DisplayRenderer:
         species_data = ecosystem_state.get('species_data', {})
         
         # Render grass
-        grass_data = species_data.get('grass', [])
+        grass_data = species_data.species_data.get('grass', [])
         for grass in grass_data:
             pygame.draw.circle(
                 self.screen, 
                 self.colors['grass'],
-                (int(grass['x']), int(grass['y'])),
+                (int(grass.position.x), int(grass.position.y)),
                 3
             )
         
         # Render cows
-        cow_data = species_data.get('cow', [])
+        cow_data = species_data.species_data.get('cow', [])
         for cow in cow_data:
             pygame.draw.circle(
                 self.screen,
                 self.colors['cow'],
-                (int(cow['x']), int(cow['y'])),
+                (int(cow.position.x), int(cow.position.y)),
                 8
             )
         
         # Render tigers
-        tiger_data = species_data.get('tiger', [])
+        tiger_data = species_data.species_data.get('tiger', [])
         for tiger in tiger_data:
             pygame.draw.circle(
                 self.screen,
                 self.colors['tiger'],
-                (int(tiger['x']), int(tiger['y'])),
+                (int(tiger.position.x), int(tiger.position.y)),
                 12
             )
     

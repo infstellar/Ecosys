@@ -114,9 +114,9 @@ class EcosystemApp:
         # Prepare simulation statistics
         simulation_stats = {
             'time': data['statistics']['time_step'],
-            'grass_count': species_counts['grass'],
-            'cow_count': species_counts['cow'],
-            'tiger_count': species_counts['tiger'],
+            'grass_count': species_counts.grass,
+            'cow_count': species_counts.cow,
+            'tiger_count': species_counts.tiger,
             'speed': data['simulation_speed']
         }
         
